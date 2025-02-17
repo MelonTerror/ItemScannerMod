@@ -1,9 +1,7 @@
 ﻿using System.Collections;
-using Harmony;
 using MelonLoader;
 using MelonLoader.Utils;
 using TeamMonumental;
-using Unity.Netcode;
 using UnityEngine;
 
 [assembly: MelonInfo(typeof(ItemScannerMod.Core), "ItemScannerMod", "1.0.0", "NightPotato & Caznix", null)]
@@ -50,7 +48,6 @@ public class Core : MelonMod
 
         MelonLogger.Msg("Attempting to load required assets.");
         LoadResourceBundle();
-        
 
     }
 
@@ -89,43 +86,46 @@ public class Core : MelonMod
                 MelonLogger.Msg("You are currently on a Cooldown.");
                 ToastManager.Instance.PopMainToast("You are currently on a cooldown!", Color.white, Color.red, 5f);
                 return;
+            } else
+            {
+                ScanForItems();
             }
-         
-            ScanForItems();
         }
     }
 
     private void ScanForItems()
     {
-        // GetTheCurrentPlayer & Position/Transform
-        GameObject player = GameObject.Find("Pre_Player(Clone)");
-        Soul playerSoul = player.GetComponent<Player>().GetSoul();
-        if (playerSoul.IsLocalPlayer)
+        GameObject[] players = GameObject.FindGameObjectsWithTag("Player");
+        foreach (GameObject player in players)
         {
-            Collider[] hitColliders = Physics.OverlapSphere(playerSoul.transform.position, MelonPreferences.GetEntryValue<int>("ItemScanner", "Scan Radius"));
-            foreach (var hitCollider in hitColliders)
+            var _playerSoul = player.GetComponent<Player>().GetSoul();
+            if (_playerSoul.IsLocalPlayer)
             {
-                if (hitCollider.GetComponent<Item>() != null && hitCollider.GetComponent<Caloric>() != null)
+                Collider[] hitColliders = Physics.OverlapSphere(_playerSoul.transform.position, MelonPreferences.GetEntryValue<int>("ItemScanner", "Scan Radius"));
+                foreach (var hitCollider in hitColliders)
                 {
-                    MelonLogger.Msg(hitCollider.gameObject.name);
-                    Item _item = hitCollider.gameObject.GetComponent<Item>();
-                    if (!blacklistedItems.Contains(_item.Name))
+                    if (hitCollider.GetComponent<Item>() != null && hitCollider.GetComponent<Caloric>() != null)
                     {
-                        MeshRenderer _itemMesh = _item.Model.GetComponentInChildren<MeshRenderer>();
+                        MelonLogger.Msg(hitCollider.gameObject.name);
+                        Item _item = hitCollider.gameObject.GetComponent<Item>();
+                        if (!blacklistedItems.Contains(_item.Name))
+                        {
+                            MeshRenderer _itemMesh = _item.Model.GetComponentInChildren<MeshRenderer>();
 
-                        _itemMesh.material.color = Color.green;
-                        Material _outlineMat = itemScannerMod_Assets.LoadAsset<Material>("OutlineMat");
+                            _itemMesh.material.color = Color.green;
+                            Material _outlineMat = itemScannerMod_Assets.LoadAsset<Material>("OutlineMat");
 
-                        if (_outlineMat == null) { MelonLogger.Error("Failed to load material!"); return; }
-                        MelonLogger.Msg("Material Loaded: " + _outlineMat.name);
-                        MaterialUtils.AddMaterialToGameObject(_itemMesh, _outlineMat);
+                            if (_outlineMat == null) { MelonLogger.Error("Failed to load material!"); return; }
+                            MelonLogger.Msg("Material Loaded: " + _outlineMat.name);
+                            MaterialUtils.AddMaterialToGameObject(_itemMesh, _outlineMat);
 
-                        MelonCoroutines.Start(NormalizedItemMaterials(timeBeforeNormalized, _itemMesh, "OutlineMat"));
+                            MelonCoroutines.Start(NormalizedItemMaterials(timeBeforeNormalized, _itemMesh, "OutlineMat"));
+                        }
+
+                        currentCooldown = MelonPreferences.GetEntryValue<int>("ItemScanner", "Scan Cooldown");
+                        MelonCoroutines.Start(HandleCoolDown(currentCooldown));
+                        MelonLogger.Msg("Scan Cooldown Started!");
                     }
-
-                    currentCooldown = MelonPreferences.GetEntryValue<int>("ItemScanner", "Scan Cooldown");
-                    MelonCoroutines.Start(HandleCoolDown(currentCooldown));
-                    MelonLogger.Msg("Scan Cooldown Started!");
                 }
             }
         }
