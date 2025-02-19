@@ -30,7 +30,7 @@ public class Core : MelonMod
 
     private static UnityEngine.KeyCode ScanItemsKey;
     private int currentCooldown = 0;
-    private string[] blacklistedItems = ["Morse Clipboard"];
+    private List<string> blacklistedItems = new List<string> { "More Clipboard" };
     public float timeBeforeNormalized = 5f; // Time to wait in seconds
 
     public override void OnInitializeMelon()
